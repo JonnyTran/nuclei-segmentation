@@ -9,9 +9,10 @@ from definitions import ROOT_DIR
 
 
 class CRCHistoPhenotypes_Patch:
-    def __init__(self, patch_size=(52, 52)):
+    def __init__(self, patch_size=(52, 52), pad_mode="symmetric"):
         self.classif_dir = os.path.join(ROOT_DIR, 'data/external/CRCHistoPhenotypes_2016_04_28/Classification/')
         self.patch_size = patch_size
+        self.pad_mode = pad_mode
 
     def load_patches(self):
         X = []
@@ -39,10 +40,11 @@ class CRCHistoPhenotypes_Patch:
                 for i in range(others.shape[0]):
                     X.append(self.extract_patch(image, others[i]))
                     y.append("others")
-        return X, y
+        return np.vstack(X), y
 
     def extract_patch(self, image, patch_center):
         patch_size = self.patch_size
+        pad_mode = self.pad_mode
 
         patch_y = int(patch_center[0] - patch_size[0] / 2)
         patch_x = int(patch_center[1] - patch_size[1] / 2)
@@ -51,7 +53,7 @@ class CRCHistoPhenotypes_Patch:
                 patch_size[1]:
             image = np.lib.pad(image, ((int(patch_size[0] / 2), int(patch_size[1] / 2)),
                                        (int(patch_size[0] / 2), int(patch_size[1] / 2)),
-                                       (0, 0)), 'symmetric')
+                                       (0, 0)), pad_mode)
             patch_x += int(patch_size[1] / 2)
             patch_y += int(patch_size[0] / 2)
 
