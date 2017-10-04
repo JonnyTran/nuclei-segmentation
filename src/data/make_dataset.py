@@ -40,7 +40,7 @@ class CRCHistoPhenotypes_Patch:
                 for i in range(others.shape[0]):
                     X.append(self.extract_patch(image, others[i]))
                     y.append("others")
-        return np.vstack(X), y
+        return X, y
 
     def extract_patch(self, image, patch_center):
         patch_size = self.patch_size
