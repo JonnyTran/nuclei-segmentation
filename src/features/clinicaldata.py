@@ -11,19 +11,24 @@ class ClinicalData:
 
     def __init__(self, cancer_type, folder_path):
         self.cancer_type = cancer_type
+
+        # Import patients
         self.patient = pd.read_table(folder_path + "nationwidechildrens.org_clinical_patient_luad.txt",
                                      sep="\t",
                                      skiprows=[1, 2],
                                      na_values="[Not Available]",
                                      usecols=ClinicalData.clinical_patient_colsname
                                      )
+        self.patient.index = self.patient["bcr_patient_barcode"]
 
+        # Import biospecimen samples (incomplete)
         self.biospecimen = pd.read_table(folder_path + "genome.wustl.edu_biospecimen_sample_luad.txt",
                                          sep="\t",
                                          skiprows=[1, ],
                                          na_values="[Not Available]",
                                          usecols=ClinicalData.biospecimen_sample_colsname
                                          )
+        self.biospecimen.index = self.biospecimen["bcr_sample_barcode"]
 
         self.patient_barcodes = self.patient["bcr_patient_barcode"].tolist()
         self.sample_barcodes = self.biospecimen["bcr_sample_barcode"].tolist()

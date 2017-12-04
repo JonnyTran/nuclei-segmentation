@@ -2,37 +2,85 @@ from definitions import ROOT_DIR
 from src.features.clinicaldata import ClinicalData
 from src.features.genomicdata import GeneExpression, SNP, DNAMethylation, miRNAExpression, CopyNumberVariation, \
     ProteinExpression
+from src.features.slide_image import TissueSlideImages
 
 
 class MultiOmicsData:
-    def __init__(self, cancer_type, folder_path):
+    def __init__(self, cancer_type, folder_path, modalities=["WSI", "GE", "SNP", "CNV", "DNA", "MIR", "PRO"]):
         """
-        Load all multi-omics TCGA data from given :param folder_path: with the following folder structure:
+        Load all multi-omics TCGA data from a given folder_path with the following folder structure:
 
+            folder_path/
+                clinical/
+                    genome.wustl.edu_biospecimen_sample_luad.txt
+                    nationwidechildrens.org_clinical_patient_luad.txt
+                gene_exp/
+                    LUAD__geneExp.txt
+                mirna/
+                    LUAD__miRNAExp__RPM.txt
+                cnv/
+                    LUAD__copyNumber.txt
+                protein_rppa/
+                    LUAD__protein_RPPA.txt
+                somatic/
+                    LUAD__somaticMutation_geneLevel.txt
 
-        :param cancer_type:
-        :param folder_path:
+        :param cancer_type: TCGA cancer code name
+        :param folder_path: relative directory path to the folder containing multi-omics data downloaded from TCGA-assembler
         """
         self.cancer_type = cancer_type
-        self.clinical = ClinicalData(cancer_type, folder_path + "clinical/")
-        # self.slide_images = TissueSlideImages(cancer_type, folder_path, clinical=self.clinical)
-        self.gene_exp = GeneExpression(cancer_type, folder_path + "gene_exp/", clinical=self.clinical)
-        self.snp = SNP(cancer_type, folder_path + "somatic/", clinical=self.clinical)
-        self.miRNA_exp = miRNAExpression(cancer_type, folder_path + "mirna/", clinical=self.clinical)
-        self.dna_methyl = DNAMethylation(cancer_type, folder_path + "dna/", clinical=self.clinical)
-        self.cnv = CopyNumberVariation(cancer_type, folder_path + "cnv/", clinical=self.clinical)
-        self.protein_exp = ProteinExpression(cancer_type, folder_path + "protein/", clinical=self.clinical)
+        self.modalities = modalities
 
-    def match_data(self):
-        pass
+        # LOADING DATA FROM FILES
+        self.multi_omics_data = {}
+        self.clinical = ClinicalData(cancer_type, folder_path + "clinical/")
+        self.multi_omics_data["PATIENTS"] = self.clinical.patient
+        self.multi_omics_data["BIOSPECIMEN"] = self.clinical.biospecimen
+
+        if ("WSI" in modalities):
+            self.WSI = TissueSlideImages(cancer_type, folder_path)
+            self.multi_omics_data["WSI"] = self.WSI
+        if ("GE" in modalities):
+            self.GE = GeneExpression(cancer_type, folder_path + "gene_exp/", )
+            self.multi_omics_data["GE"] = self.GE.data
+        if ("SNP" in modalities):
+            self.SNP = SNP(cancer_type, folder_path + "somatic/")
+            self.multi_omics_data["SNP"] = self.SNP.data
+        if ("MIR" in modalities):
+            self.MIR = miRNAExpression(cancer_type, folder_path + "mirna/")
+            self.multi_omics_data["MIR"] = self.MIR.data
+        if ("DNA" in modalities):
+            self.DNA = DNAMethylation(cancer_type, folder_path + "dna/")
+            self.multi_omics_data["DNA"] = self.DNA.data
+        if ("CNV" in modalities):
+            self.CNV = CopyNumberVariation(cancer_type, folder_path + "cnv/")
+            self.multi_omics_data["CNV"] = self.CNV.data
+        if ("PRO" in modalities):
+            self.PRO = ProteinExpression(cancer_type, folder_path + "protein_rppa/")
+            self.multi_omics_data["PRO"] = self.PRO.data
+
+        self.print_sample_sizes()
+
+    def match_samples(self, modalities):
+        matched_samples = self.multi_omics_data[modalities[0]].index.copy()
+
+        for modality in modalities:
+            matched_samples = matched_samples.join(self.multi_omics_data[modality].index, how="inner")
+
+        return matched_samples
+
 
     def normalize_data(self):
         pass
 
+    def print_sample_sizes(self):
+        for modality in self.multi_omics_data.keys():
+            print(modality, self.multi_omics_data[modality].shape)
+
     def get_slide_image(self):
         pass
 
-    def get_clinical(self):
+    def get_clinical(self, ):
         pass
 
     def get_gene_exp(self):
@@ -49,6 +97,7 @@ class MultiOmicsData:
 
 
 if __name__ == '__main__':
-    # table = pd.read_table(ROOT_DIR+"/data/tcga-assembler/LUAD/clinical/nationwidechildrens.org_clinical_patient_luad.txt", sep="\t")
-    folder_path = "/data/tcga-assembler/LUAD/"
-    luad_data = MultiOmicsData(cancer_type="LUAD", folder_path=ROOT_DIR + folder_path)
+    folder_path = ROOT_DIR + "/data/tcga-assembler/LUAD/"
+    luad_data = MultiOmicsData(cancer_type="LUAD", folder_path=folder_path,
+                               modalities=["GE", "SNP", "CNV", "MIR", "PRO"])
+    print("matched samples", luad_data.match_samples(modalities=["GE", "SNP", "CNV", "MIR"]).shape)
