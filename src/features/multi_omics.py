@@ -35,7 +35,7 @@ class MultiOmicsData:
         self.multi_omics_data = {}
         self.clinical = ClinicalData(cancer_type, folder_path + "clinical/")
         self.multi_omics_data["PATIENTS"] = self.clinical.patient
-        self.multi_omics_data["BIOSPECIMEN"] = self.clinical.biospecimen
+        self.multi_omics_data["BIOSPECIMENS"] = self.clinical.biospecimen
 
         if ("WSI" in modalities):
             self.WSI = TissueSlideImages(cancer_type, folder_path)
@@ -62,6 +62,12 @@ class MultiOmicsData:
         self.print_sample_sizes()
 
     def match_samples(self, modalities):
+        """
+        Return the index of bcr_sample_barcodes of the intersection of samples from all modalities
+
+        :param modalities: An array of modalities
+        :return: An pandas Index list
+        """
         matched_samples = self.multi_omics_data[modalities[0]].index.copy()
 
         for modality in modalities:
