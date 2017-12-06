@@ -2,7 +2,7 @@ from definitions import ROOT_DIR
 from src.features.clinicaldata import ClinicalData
 from src.features.genomicdata import GeneExpression, SNP, DNAMethylation, miRNAExpression, CopyNumberVariation, \
     ProteinExpression
-from src.features.slide_image import TissueSlideImages
+from src.features.slide_image import WholeSlideImages
 
 
 class MultiOmicsData:
@@ -11,19 +11,25 @@ class MultiOmicsData:
         Load all multi-omics TCGA data from a given folder_path with the following folder structure:
 
             folder_path/
-                clinical/
-                    genome.wustl.edu_biospecimen_sample_luad.txt
-                    nationwidechildrens.org_clinical_patient_luad.txt
-                gene_exp/
-                    LUAD__geneExp.txt
-                mirna/
-                    LUAD__miRNAExp__RPM.txt
-                cnv/
-                    LUAD__copyNumber.txt
-                protein_rppa/
-                    LUAD__protein_RPPA.txt
-                somatic/
-                    LUAD__somaticMutation_geneLevel.txt
+            │
+            ├── clinical/
+            │   ├── genome.wustl.edu_biospecimen_sample_luad.txt
+            │   └── nationwidechildrens.org_clinical_patient_luad.txt
+            │
+            ├── gene_exp/
+            │   └── LUAD__geneExp.txt
+            │
+            ├── mirna/
+            │   └── LUAD__miRNAExp__RPM.txt
+            │
+            ├── cnv/
+            │   └── LUAD__copyNumber.txt
+            │
+            ├── protein_rppa/
+            │   └── LUAD__protein_RPPA.txt
+            │
+            └── somatic/
+                └── LUAD__somaticMutation_geneLevel.txt
 
         :param cancer_type: TCGA cancer code name
         :param folder_path: relative directory path to the folder containing multi-omics data downloaded from TCGA-assembler
@@ -38,7 +44,7 @@ class MultiOmicsData:
         self.multi_omics_data["BIOSPECIMENS"] = self.clinical.biospecimen
 
         if ("WSI" in modalities):
-            self.WSI = TissueSlideImages(cancer_type, folder_path)
+            self.WSI = WholeSlideImages(cancer_type, folder_path)
             self.multi_omics_data["WSI"] = self.WSI
         if ("GE" in modalities):
             self.GE = GeneExpression(cancer_type, folder_path + "gene_exp/", )

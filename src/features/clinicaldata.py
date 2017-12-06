@@ -21,7 +21,7 @@ class ClinicalData:
                                      )
         self.patient.index = self.patient["bcr_patient_barcode"]
 
-        # Import biospecimen samples (incomplete)
+        # Import biospecimen samples (not all samples included in dataset)
         self.biospecimen = pd.read_table(folder_path + "genome.wustl.edu_biospecimen_sample_luad.txt",
                                          sep="\t",
                                          skiprows=[1, ],
