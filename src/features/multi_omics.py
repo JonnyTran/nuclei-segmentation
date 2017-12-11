@@ -87,7 +87,8 @@ class MultiOmicsData:
 
     def print_sample_sizes(self):
         for modality in self.multi_omics_data.keys():
-            print(modality, self.multi_omics_data[modality].shape)
+            print(modality, self.multi_omics_data[modality].shape if hasattr(self.multi_omics_data[modality],
+                                                                             'shape') else "Didn't import data")
 
     def get_slide_image(self):
         pass
@@ -111,5 +112,5 @@ class MultiOmicsData:
 if __name__ == '__main__':
     folder_path = ROOT_DIR + "/data/tcga-assembler/LUAD/"
     luad_data = MultiOmicsData(cancer_type="LUAD", folder_path=folder_path,
-                               modalities=["GE", "SNP", "CNV", "MIR", "PRO"])
+                               modalities=["WSI", "GE", "SNP", "CNV", "MIR", "PRO"])
     print("matched samples", luad_data.match_samples(modalities=["GE", "SNP", "CNV", "MIR"]).shape)

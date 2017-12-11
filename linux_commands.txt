@@ -1,0 +1,4 @@
+google_cloud_bucket_download_commands
+
+    gsutil -m cp -r gs://isb-cgc-open/NCI-GDC/legacy/TCGA/TCGA-LUAD/Other/Tissue_slide_image/** .
+
