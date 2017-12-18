@@ -31,7 +31,7 @@ class WholeSlideImages:
 
         wsi_file = self.wsi_file_iterator(wsi_dir_path)
 
-        i = 5
+        i = 2
         while True and i > 0:
             imagePath = os.path.join(wsi_dir_path, wsi_file.__next__())
             i = i - 1
@@ -87,6 +87,7 @@ def slide_to_tile(slide_path, params=None, region=None,
 
     """
     ts = large_image.getTileSource(slide_path)
+    print(ts.getMetadata())
     kwargs = dict(format=large_image.tilesource.TILE_FORMAT_NUMPY)
     if region is not None:
         kwargs['region'] = region
@@ -103,15 +104,18 @@ def slide_to_tile(slide_path, params=None, region=None,
 
 def _count_tiles(slide_path, params, kwargs, position, count):
     ts = large_image.getTileSource(slide_path)
+
+    subtotal = np.array((0, 0))
     for pos in range(position, position + count):
         tile = ts.getSingleTile(tile_position=pos, **kwargs)['tile']
-        subtotal = tile.shape
+        subtotal = subtotal + np.array(tile.shape[0:2])
 
     return subtotal
 
 
 def _combine(results):
-    return np.sum(results)
+    total = np.sum(results, axis=0)
+    return total
 
 
 
