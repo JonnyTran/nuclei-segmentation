@@ -1,7 +1,7 @@
 from definitions import ROOT_DIR
 from src.features.clinicaldata import ClinicalData
 from src.features.genomicdata import GeneExpression, SNP, DNAMethylation, miRNAExpression, CopyNumberVariation, \
-    ProteinExpression
+    ProteinExpression, LncRNAExpression
 from src.features.slide_image import WholeSlideImages
 
 
@@ -36,6 +36,7 @@ class MultiOmicsData:
         self.clinical = ClinicalData(cancer_type, folder_path + "clinical/")
         self.multi_omics_data["PATIENTS"] = self.clinical.patient
         self.multi_omics_data["BIOSPECIMENS"] = self.clinical.biospecimen
+        self.multi_omics_data["DRUGS"] = self.clinical.drugs
 
         if ("WSI" in modalities):
             self.WSI = WholeSlideImages(cancer_type, folder_path)
@@ -49,6 +50,9 @@ class MultiOmicsData:
         if ("MIR" in modalities):
             self.MIR = miRNAExpression(cancer_type, folder_path + "mirna/")
             self.multi_omics_data["MIR"] = self.MIR.data
+        if ("LNC" in modalities):
+            self.LNC = LncRNAExpression(cancer_type, folder_path + "lncrna/")
+            self.multi_omics_data["LNC"] = self.LNC.data
         if ("DNA" in modalities):
             self.DNA = DNAMethylation(cancer_type, folder_path + "dna/")
             self.multi_omics_data["DNA"] = self.DNA.data
@@ -75,8 +79,21 @@ class MultiOmicsData:
 
         return matched_samples
 
+    def load_data(self, **kwargs):
+        """
+        Load and return the multi-omics dataset (classification)
+        :param kwargs:
+        """
+        if kwargs.get("modalities") == 'all':
+            modalities = self.modalities
+        else:
+            modalities = self.modalities
 
-    def normalize_data(self):
+        target = ["ajcc_pathologic_tumor_stage"]
+
+        matched_samples = self.match_samples(modalities)
+
+    def get_target(self):
         pass
 
     def print_sample_sizes(self):
@@ -84,27 +101,18 @@ class MultiOmicsData:
             print(modality, self.multi_omics_data[modality].shape if hasattr(self.multi_omics_data[modality],
                                                                              'shape') else "Didn't import data")
 
-    def get_slide_image(self):
-        pass
-
-    def get_clinical(self, ):
-        pass
-
-    def get_gene_exp(self):
-        pass
-
-    def get_miRNA_exp(self):
-        pass
-
-    def get_cnv(self):
-        pass
-
-    def get_protein_exp(self):
-        pass
 
 
 if __name__ == '__main__':
     folder_path = ROOT_DIR + "/data/tcga-assembler/LUAD/"
     luad_data = MultiOmicsData(cancer_type="LUAD", folder_path=folder_path,
-                               modalities=["WSI", "GE", "SNP", "CNV", "MIR", "PRO"])
-    print("matched samples", luad_data.match_samples(modalities=["GE", "SNP", "CNV", "MIR"]).shape)
+                               modalities=["GE", "MIR", "LNC"])
+    matched_samples = luad_data.match_samples(modalities=["GE", "LNC"])
+    print("matched samples", matched_samples.shape, matched_samples)
+
+    kwargs = {
+        "target": [],
+        "modalities": "all"
+    }
+
+    X, y = luad_data.load_data(kwargs)
