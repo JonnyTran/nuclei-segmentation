@@ -6,7 +6,7 @@ from definitions import ROOT_DIR
 
 class ClinicalData:
     clinical_patient_colsname = ['bcr_patient_barcode', 'gender', 'race', 'histologic_diagnosis.1',
-                                 'ajcc_pathologic_tumor_stage',
+                                 'ajcc_pathologic_tumor_stage'
                                  ]
     biospecimen_sample_colsname = ['bcr_sample_barcode', 'sample_type']
 
@@ -20,7 +20,7 @@ class ClinicalData:
         self.patient = pd.read_table(os.path.join(folder_path, "nationwidechildrens.org_clinical_patient_luad.txt"),
                                      sep="\t",
                                      skiprows=[1, 2],
-                                     na_values="[Not Available]",
+                                     na_values=["[Not Available]", "[Not Applicable]"],
                                      usecols=ClinicalData.clinical_patient_colsname
                                      )
         self.patient.index = self.patient["bcr_patient_barcode"]
