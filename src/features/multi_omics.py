@@ -42,7 +42,7 @@ class MultiOmicsData:
         self.multi_omics_data = {}
         self.clinical = ClinicalData(cancer_type, folder_path + "clinical/")
         self.multi_omics_data["PATIENTS"] = self.clinical.patient
-        self.multi_omics_data["BIOSPECIMENS"] = self.clinical.biospecimen
+        # self.multi_omics_data["BIOSPECIMENS"] = self.clinical.biospecimen
         self.multi_omics_data["DRUGS"] = self.clinical.drugs
 
         if ("WSI" in modalities):
@@ -86,7 +86,7 @@ class MultiOmicsData:
 
         return matched_samples
 
-    def load_data(self, multi_omics, target, *args):
+    def load_data(self, multi_omics, target=['ajcc_pathologic_tumor_stage'], *args):
         """
         Load and return the multi-omics dataset (classification)
         :param multi_omics: A list of the data modalities to load. Default "all" to select all modalities
@@ -96,46 +96,49 @@ class MultiOmicsData:
         else:
             modalities = multi_omics
 
-        # matched_samples = self.match_samples(modalities)
+        matched_samples = self.match_samples(modalities)
 
         # Build targets clinical data
         y = self.get_patients_clinical(matched_samples)
 
+        # Filter target column labels
+        y = y.filter(target)
+        y.dropna(axis=0, inplace=True)
+
         # Filter samples
+        y = y[y['ajcc_pathologic_tumor_stage'] != "[Discrepancy]"]
+        y.loc[y.index.str.contains(
+            "-11A"), 'ajcc_pathologic_tumor_stage'] = "Normal"  # Change stage label of normal samples to "Normal"
+        matched_samples = y.index
 
         # Build data matrix for each modality, indexed by matched_samples
         X_multiomics = {}
         for modality in modalities:
             X_multiomics[modality] = self.multi_omics_data[modality].loc[matched_samples]
 
-        # Filter target column labels
+        return X_multiomics, y
 
-        return X_multiomics,
-
-    def get_patients_clinical(self, modalities_matched=True, normal_matched=False, clinical_data=['PATIENTS', 'DRUGS']):
-        if modalities_matched:
-            matched_samples = self.match_samples(self.modalities)
-        else:
-            matched_samples = self.multi_omics_data["PATIENTS"]["bcr_patient_barcode"]  # Select all patient barcodes
+    def get_patients_clinical(self, matched_samples, clinical_data=['PATIENTS']):
 
         target = pd.DataFrame(index=matched_samples)
 
         # Make a separate column for patients barcode from samples barcode
-        # target["patient_barcode"] = target.index.str[:-4]
-        # print("modalities matched sample size:", target.shape)
+        target["patient_barcode"] = target.index.str[:-4]
+        print("modalities matched sample size:", target.shape)
 
         # Merge patients clinical data with patient barcode as index
         for clinical in clinical_data:
-            target = pd.merge(target, self.multi_omics_data[clinical],
-                              how="left", left_index=True, right_on='bcr_patient_barcode')
+            target = target.join(self.multi_omics_data[clinical],
+                                 how="left", on="patient_barcode", rsuffix="_")
 
-        # if normal_matched:
+        # TODO if normal_matched:
         #     target =
         print("joined clinical data size:", target.shape)
 
         target.replace({'ajcc_pathologic_tumor_stage': MultiOmicsData.pathologic_stage_map}, inplace=True)
 
         return target  # Return only the columns specified
+
 
     def print_sample_sizes(self):
         for modality in self.multi_omics_data.keys():
@@ -145,12 +148,13 @@ class MultiOmicsData:
 
 
 if __name__ == '__main__':
-    folder_path = ROOT_DIR + "/data/tcga-assembler/LUAD/"
-    luad_data = MultiOmicsData(cancer_type="LUAD", folder_path=folder_path,
+    folder_path = ROOT_DIR + "/data/tcga-assembler/LUSC/"
+    luad_data = MultiOmicsData(cancer_type="LUSC", folder_path=folder_path,
                                modalities=["GE", "MIR", "LNC"])
+
     matched_samples = luad_data.match_samples(modalities=["GE", "MIR"])
     print("matched samples", matched_samples.shape, matched_samples)
 
     # X,  = luad_data.load_data(multi_omics= "all", target=['ajcc_pathologic_tumor_stage'])
-    patients_clinical = luad_data.get_patients_clinical(modalities_matched=True, normal_matched=False)
+    patients_clinical = luad_data.get_patients_clinical(matched_samples)
     # print(patients_clinical)

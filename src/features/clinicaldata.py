@@ -17,7 +17,7 @@ class ClinicalData:
         self.cancer_type = cancer_type
 
         # Import patients
-        self.patient = pd.read_table(os.path.join(folder_path, "nationwidechildrens.org_clinical_patient_luad.txt"),
+        self.patient = pd.read_table(os.path.join(folder_path, "nationwidechildrens.org_clinical_patient.txt"),
                                      sep="\t",
                                      skiprows=[1, 2],
                                      na_values=["[Not Available]", "[Not Applicable]"],
@@ -25,34 +25,34 @@ class ClinicalData:
                                      )
         self.patient.index = self.patient["bcr_patient_barcode"]
 
-        # Import biospecimen samples (not all samples included in dataset)
-        self.biospecimen = pd.read_table(os.path.join(folder_path, "genome.wustl.edu_biospecimen_sample_luad.txt"),
-                                         sep="\t",
-                                         skiprows=[1, ],
-                                         na_values="[Not Available]",
-                                         usecols=ClinicalData.biospecimen_sample_colsname
-                                         )
-        self.biospecimen.index = self.biospecimen["bcr_sample_barcode"]
+        # # Import biospecimen samples (not all samples included in dataset)
+        # self.biospecimen = pd.read_table(os.path.join(folder_path, "genome.wustl.edu_biospecimen_sample.txt"),
+        #                                  sep="\t",
+        #                                  skiprows=[1, ],
+        #                                  na_values="[Not Available]",
+        #                                  usecols=ClinicalData.biospecimen_sample_colsname
+        #                                  )
+        # self.biospecimen.index = self.biospecimen["bcr_sample_barcode"]
 
         # Import clinical drug
-        self.drugs = pd.read_table(os.path.join(folder_path, "nationwidechildrens.org_clinical_drug_luad.txt"),
+        self.drugs = pd.read_table(os.path.join(folder_path, "nationwidechildrens.org_clinical_drug.txt"),
                                    sep="\t",
                                    skiprows=[1, 2],
-                                   na_values="[Not Available]",
+                                   na_values=["[Not Available]", "[Unknown]", "[Not Applicable]"],
                                    usecols=ClinicalData.clinical_drug_colsname
                                    )
         self.drugs.index = self.drugs["bcr_patient_barcode"]
 
         # Save index's
         self.patient_barcodes = self.patient["bcr_patient_barcode"].tolist()
-        self.sample_barcodes = self.biospecimen["bcr_sample_barcode"].tolist()
-        self.drug_barcodes = self.biospecimen["bcr_sample_barcode"].tolist()
+        # self.sample_barcodes = self.biospecimen["bcr_sample_barcode"].tolist()
+        # self.drug_barcodes = self.biospecimen["bcr_sample_barcode"].tolist()
 
     def get_patient_barcodes(self):
         return self.patient_barcodes
 
-    def get_sample_barcodes(self):
-        return self.sample_barcodes
+    # def get_sample_barcodes(self):
+    #     return self.sample_barcodes
 
 
 if __name__ == '__main__':

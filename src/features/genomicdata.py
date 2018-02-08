@@ -60,7 +60,7 @@ class GenomicData:
 
 class LncRNAExpression(GenomicData):
     def __init__(self, cancer_type, folder_path):
-        file_path = os.path.join(folder_path, "TCGA-LUAD-rnaexpr.tsv")
+        file_path = os.path.join(folder_path, "TCGA-rnaexpr.tsv")
         super().__init__(cancer_type, file_path)
 
     def preprocess_expression_table(self, df, columns):
@@ -98,25 +98,25 @@ class LncRNAExpression(GenomicData):
 
 class GeneExpression(GenomicData):
     def __init__(self, cancer_type, folder_path):
-        file_path = os.path.join(folder_path, "LUAD__geneExp.txt")
+        file_path = os.path.join(folder_path, "geneExp.txt")
         super().__init__(cancer_type, file_path)
 
 
 class SNP(GenomicData):
     def __init__(self, cancer_type, folder_path):
-        file_path = os.path.join(folder_path, "LUAD__somaticMutation_geneLevel.txt")
+        file_path = os.path.join(folder_path, "somaticMutation_geneLevel.txt")
         super().__init__(cancer_type, file_path)
 
 
 class miRNAExpression(GenomicData):
     def __init__(self, cancer_type, folder_path):
-        file_path = os.path.join(folder_path, "LUAD__miRNAExp__RPM.txt")
+        file_path = os.path.join(folder_path, "miRNAExp__RPM.txt")
         super().__init__(cancer_type, file_path)
 
 
 class CopyNumberVariation(GenomicData):
     def __init__(self, cancer_type, folder_path):
-        file_path = os.path.join(folder_path, "LUAD__copyNumber.txt")
+        file_path = os.path.join(folder_path, "copyNumber.txt")
         super().__init__(cancer_type, file_path)
 
 
@@ -128,7 +128,7 @@ class DNAMethylation(GenomicData):
 
 class ProteinExpression(GenomicData):
     def __init__(self, cancer_type, folder_path):
-        file_path = os.path.join(folder_path, "LUAD__protein_RPPA.txt")
+        file_path = os.path.join(folder_path, "protein_RPPA.txt")
         super().__init__(cancer_type, file_path)
 
 
