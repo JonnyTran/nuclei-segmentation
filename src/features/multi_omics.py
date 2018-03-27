@@ -71,6 +71,13 @@ class MultiOmicsData:
             self.PRO = ProteinExpression(cancer_type, folder_path + "protein_rppa/")
             self.multi_omics_data["PRO"] = self.PRO.data
 
+        # Build a table for each samples's clinical data
+        all_samples = pd.Index([])
+        for modality in modalities:
+            all_samples = all_samples.union(self.multi_omics_data[modality].index)
+        self.clinical.build_clinical_samples(all_samples)
+        self.multi_omics_data["SAMPLES"] = self.clinical.samples
+
         self.print_sample_sizes()
 
     def match_samples(self, modalities):
@@ -88,16 +95,17 @@ class MultiOmicsData:
 
         return matched_samples
 
-    def load_data(self, multi_omics, target=['ajcc_pathologic_tumor_stage'],
-                  pathologic_stages=[], histological_types=[], predicted_subtypes=[], samples_barcode=None):
+    def load_data(self, modalities, target=['pathologic_stage'],
+                  pathologic_stages=[], histological_subtypes=[], predicted_subtypes=[], tumor_normal=[],
+                  samples_barcode=None):
         """
         Load and return the multi-omics dataset (classification)
-        :param multi_omics: A list of the data modalities to load. Default "all" to select all modalities
+        :param modalities: A list of the data modalities to load. Default "all" to select all modalities
         """
-        if multi_omics == 'all' or multi_omics == None:
+        if modalities == 'all' or modalities == None:
             modalities = self.modalities
-        elif multi_omics:
-            modalities = multi_omics
+        elif modalities:
+            modalities = modalities
         else:
             raise Exception("Need to specify which multi-omics to retrieve")
 
@@ -107,20 +115,16 @@ class MultiOmicsData:
 
         # Build targets clinical data
         y = self.get_patients_clinical(matched_samples)
-        # print(y)
-
-        # Filter samples
-        y = y[y['ajcc_pathologic_tumor_stage'] != "[Discrepancy]"]
-        y.loc[y.index.str.contains("-11A"),
-              'ajcc_pathologic_tumor_stage'] = "Normal"  # Change stage label of normal samples to "Normal"
 
         # Select only samples with certain cancer stage or subtype
         if pathologic_stages:
-            y = y[y['ajcc_pathologic_tumor_stage'].isin(pathologic_stages)]
-        if histological_types:
-            y = y[y['histologic_diagnosis.1'].isin(histological_types)]
+            y = y[y['pathologic_stage'].isin(pathologic_stages)]
+        if histological_subtypes:
+            y = y[y['histologic_subtype'].isin(histological_subtypes)]
         if predicted_subtypes:
             y = y[y['predicted_subtype'].isin(predicted_subtypes)]
+        if tumor_normal:
+            y = y[y['tumor_normal'].isin(tumor_normal)]
         # TODO if normal_matched:
         #     target =
 
@@ -137,7 +141,7 @@ class MultiOmicsData:
 
         return X_multiomics, y
 
-    def get_patients_clinical(self, matched_samples, clinical_data=['PATIENTS']):
+    def get_patients_clinical(self, matched_samples):
         """
         Fetch patient's clinical data for each given samples barcodes in matched_samples
 
@@ -145,24 +149,7 @@ class MultiOmicsData:
         :param clinical_data:
         :return:
         """
-        target = pd.DataFrame(index=matched_samples)
-
-        # Make a separate column for patients barcode from samples barcode
-        target["patient_barcode"] = target.index.str[:-4]
-
-        no_samples = target.shape[0]
-
-        # Merge patients clinical data with patient barcode as index
-        for clinical in clinical_data:
-            # target = pd.merge(target, self.multi_omics_data[clinical],
-            #                      how="left", left_on="patient_barcode", right_on="patient_barcode")
-            target = target.join(self.multi_omics_data[clinical], on="patient_barcode", how="left", rsuffix="_")
-
-        # print(target)
-        if target.shape[0] != no_samples:
-            raise Exception("Clinical data merging has wrong number of samples")
-
-        return target  # Return only the columns specified
+        return self.multi_omics_data["SAMPLES"].loc[matched_samples]
 
 
     def print_sample_sizes(self):
@@ -176,13 +163,14 @@ class MultiOmicsData:
 
 
 if __name__ == '__main__':
-    folder_path = "/home/jonny_admin/PycharmProjects/nuclei-segmentation/data/tcga-assembler/LUSC/"
-    luad_data = MultiOmicsData(cancer_type="LUSC", folder_path=folder_path,
+    folder_path = "/data/tcga-assembler/LUSC/"
+    luad_data = MultiOmicsData(cancer_type="LUSC", folder_path=ROOT_DIR + folder_path,
                                modalities=["GE", "MIR"])
 
-    matched_samples = luad_data.match_samples(modalities=["GE", "MIR"])
-    print("matched samples", matched_samples.shape, matched_samples)
+    matched_samples = luad_data.match_samples(modalities=["GE"])
+    # print("matched samples", matched_samples.shape, matched_samples)
 
-    # X,  = luad_data.load_data(multi_omics= "all", target=['ajcc_pathologic_tumor_stage'])
+
     patients_clinical = luad_data.get_patients_clinical(matched_samples)
+    X, y = luad_data.load_data(modalities="all", target=['pathologic_stage'])
     # print(patients_clinical)

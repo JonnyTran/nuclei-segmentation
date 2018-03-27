@@ -1,8 +1,10 @@
 import os
-
 import pandas as pd
 
 from definitions import ROOT_DIR
+
+
+# from src.features.multi_omics import MultiOmicsData
 
 
 class ClinicalData:
@@ -30,8 +32,9 @@ class ClinicalData:
                                      usecols=ClinicalData.clinical_patient_colsname
                                      )
         self.patient.index = self.patient["bcr_patient_barcode"]
-
-        self.patient.replace({'ajcc_pathologic_tumor_stage': ClinicalData.pathologic_stage_map}, inplace=True)
+        self.patient.rename({"ajcc_pathologic_tumor_stage": "pathologic_stage",
+                             "histologic_diagnosis.1": "histologic_subtype"}, axis='columns', inplace=True)
+        self.patient.replace({'pathologic_stage': ClinicalData.pathologic_stage_map}, inplace=True)
 
 
         # # Import biospecimen samples (not all samples included in dataset)
@@ -56,6 +59,30 @@ class ClinicalData:
         self.patient_barcodes = self.patient["bcr_patient_barcode"].tolist()
         # self.sample_barcodes = self.biospecimen["bcr_sample_barcode"].tolist()
         # self.drug_barcodes = self.biospecimen["bcr_sample_barcode"].tolist()
+
+    def build_clinical_samples(self, all_samples):
+        # Build table with samples clinical data from patients
+        self.samples = pd.DataFrame(index=all_samples)
+
+        self.samples["bcr_patient_barcode"] = self.samples.index.str[:-4]
+
+        no_samples = self.samples.shape[0]
+
+        # Merge patients clinical data with patient barcode as index
+        # target = pd.merge(target, self.patient,
+        #                      how="left", left_on="patient_barcode", right_on="patient_barcode")
+        self.samples = self.samples.join(self.patient, on="bcr_patient_barcode", how="left", rsuffix="_")
+        if self.samples.shape[0] != no_samples:
+            raise Exception("Clinical data merging has wrong number of samples")
+        self.samples.drop('bcr_patient_barcode_', axis=1, inplace=True)  # Remove redundant column
+        # self.samples.dropna(axis=0, subset=["bcr_patient_barcode"], inplace=True) # Remove samples without clinical data
+
+        self.samples = self.samples[self.samples['pathologic_stage'] != "[Discrepancy]"]
+        self.samples.loc[self.samples.index.str.contains("-11A"),
+                         'tumor_normal'] = "Normal"  # Change stage label of normal samples to "Normal"
+        self.samples.loc[self.samples.index.str.contains("-01A"),
+                         'tumor_normal'] = "Tumor"  # Change stage label of normal samples to "Normal"
+
 
     def get_patient_barcodes(self):
         return self.patient_barcodes
