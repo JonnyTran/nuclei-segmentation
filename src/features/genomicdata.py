@@ -126,6 +126,108 @@ class miRNAExpression(GenomicData):
         file_path = os.path.join(folder_path, "miRNAExp__RPM.txt")
         super().__init__(cancer_type, file_path)
 
+    def process_target_scan(self, mirna_list, gene_symbols):
+        self.process_targetscan_mirna_family(mirna_list)
+        self.process_mirna_target_interactions(mirna_list, gene_symbols)
+        self.process_mirna_target_interactions_context_score(mirna_list, gene_symbols)
+
+    def process_targetscan_mirna_family(self, mirna_list, incremental_group_numbering=False):
+        targetScan_family_df = pd.read_table(
+            os.path.join(ROOT_DIR, 'data/external/TargetScan/TargetScan_miR_Family_Info.txt'),
+            delimiter='\t')
+        targetScan_family_df = targetScan_family_df[targetScan_family_df['Species ID'] == 9606]
+        targetScan_family_df['MiRBase ID'] = targetScan_family_df['MiRBase ID'].str.lower()
+        targetScan_family_df['MiRBase ID'] = targetScan_family_df['MiRBase ID'].str.replace("-3p.*|-5p.*", "")
+        targetScan_family_df.drop_duplicates(inplace=True)
+        targetScan_family_df = targetScan_family_df[['miR family', 'MiRBase ID']]
+        in_family_mirnas_list = targetScan_family_df["MiRBase ID"].tolist()
+        self.mirna_family = list(targetScan_family_df["MiRBase ID"].groupby(targetScan_family_df["miR family"]))
+        self.mirna_family_names = [fam[0] for fam in self.mirna_family]
+        self.mirna_family = {fam[0]: fam[1].tolist() for fam in self.mirna_family}
+
+        self.mirna_family_assg = []
+        counter = 9999
+        for m in mirna_list:
+            if m in in_family_mirnas_list:
+                for k, v in self.mirna_family.items():
+                    if m in v:
+                        m_family = k
+                        break
+                self.mirna_family_assg.append(self.mirna_family_names.index(m_family))
+            else:
+                if incremental_group_numbering:
+                    while counter in range(0, len(self.mirna_family_names)):
+                        counter += 1
+                    self.mirna_family_assg.append(counter)
+                    counter += 1
+                else:
+                    self.mirna_family_assg.append(counter)
+
+    def process_mirna_target_interactions(self, mirna_list, gene_symbols):
+        # Load data frame from file
+        targetScan_df = pd.read_table(
+            os.path.join(ROOT_DIR,
+                         'data/external/TargetScan/TargetScan_Predicted_Targets_Info_default_predictions.tsv'),
+            delimiter='\t')
+        targetScan_family_df = pd.read_table(
+            os.path.join(ROOT_DIR, 'data/external/TargetScan/TargetScan_miR_Family_Info.txt'),
+            delimiter='\t')
+
+        # Select only homo sapiens miRNA-target pairs
+        targetScan_df = targetScan_df[targetScan_df["Species ID"] == 9606][["miR Family", "Gene Symbol"]]
+        targetScan_family_df = targetScan_family_df[targetScan_family_df['Species ID'] == 9606][
+            ['miR family', 'MiRBase ID']]
+
+        # Use miRBase ID names
+        targetScan_family_df.rename(columns={'miR family': 'miR Family'}, inplace=True)
+        targetScan_df = pd.merge(targetScan_df, targetScan_family_df, how='inner', on="miR Family")
+        targetScan_df = targetScan_df[["MiRBase ID", "Gene Symbol"]]
+
+        # Standardize miRNA names
+        targetScan_df['MiRBase ID'] = targetScan_df['MiRBase ID'].str.lower()
+        targetScan_df['MiRBase ID'] = targetScan_df['MiRBase ID'].str.replace("-3p.*|-5p.*", "")
+        targetScan_df.drop_duplicates(inplace=True)
+
+        # Filter miRNA-target pairs to only miRNA's included in miRNA expression data, same for gene targets
+        self.targetScan_df = targetScan_df[
+            targetScan_df['MiRBase ID'].isin(mirna_list) & targetScan_df['Gene Symbol'].isin(gene_symbols)]
+
+    def process_mirna_target_interactions_context_score(self, mirna_list, gene_symbols):
+        # Load data frame from file
+        targetScan_context_df = pd.read_table(
+            os.path.join(ROOT_DIR,
+                         'data/external/TargetScan/TargetScan_Predicted_Targets_Context_Scores.default_predictions.txt'),
+            delimiter='\t')
+
+        # Select only homo sapiens miRNA-target pairs
+        targetScan_context_df = targetScan_context_df[targetScan_context_df["Gene Tax ID"] == 9606][
+            ["miRNA", "Gene Symbol"]]
+
+        # TODO Select only interactions with high context score
+
+        # Use miRBase ID names
+        targetScan_context_df.rename(columns={'miRNA': 'MiRBase ID'}, inplace=True)
+
+        # Standardize miRNA names
+        targetScan_context_df['MiRBase ID'] = targetScan_context_df['MiRBase ID'].str.lower()
+        targetScan_context_df['MiRBase ID'] = targetScan_context_df['MiRBase ID'].str.replace("-3p.*|-5p.*", "")
+        targetScan_context_df.drop_duplicates(inplace=True)
+
+        # Filter miRNA-target pairs to only miRNA's included in miRNA expression data, same for gene targets
+        self.targetScan_context_df = targetScan_context_df[
+            targetScan_context_df['MiRBase ID'].isin(mirna_list) & targetScan_context_df['Gene Symbol'].isin(
+                gene_symbols)]
+
+    def get_miRNA_family_group_assg(self):
+        return self.mirna_family_assg
+
+    def get_miRNA_target_interaction(self):
+        return self.targetScan_df
+
+    def get_miRNA_target_interaction_context(self):
+        return self.targetScan_context_df
+
+
 
 class CopyNumberVariation(GenomicData):
     def __init__(self, cancer_type, folder_path):

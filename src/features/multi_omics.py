@@ -21,7 +21,7 @@ class MultiOmicsData:
             folder_path/
                 clinical/
                     genome.wustl.edu_biospecimen_sample.txt
-                    nationwidechildrens.org_clinica l_patient.txt
+                    nationwidechildrens.org_clinical_patient.txt
                 gene_exp/
                     geneExp.txt
                 mirna/
@@ -40,43 +40,46 @@ class MultiOmicsData:
         self.modalities = modalities
 
         # LOADING DATA FROM FILES
-        self.multi_omics_data = {}
+        self.data = {}
         self.clinical = ClinicalData(cancer_type, folder_path + "clinical/")
-        self.multi_omics_data["PATIENTS"] = self.clinical.patient
+        self.data["PATIENTS"] = self.clinical.patient
         # self.multi_omics_data["BIOSPECIMENS"] = self.clinical.biospecimen
-        self.multi_omics_data["DRUGS"] = self.clinical.drugs
+        self.data["DRUGS"] = self.clinical.drugs
 
         if ("WSI" in modalities):
             self.WSI = WholeSlideImages(cancer_type, folder_path)
-            self.multi_omics_data["WSI"] = self.WSI
+            self.data["WSI"] = self.WSI
         if ("GE" in modalities):
             self.GE = GeneExpression(cancer_type, folder_path + "gene_exp/", )
-            self.multi_omics_data["GE"] = self.GE.data
+            self.data["GE"] = self.GE.data
         if ("SNP" in modalities):
             self.SNP = SNP(cancer_type, folder_path + "somatic/")
-            self.multi_omics_data["SNP"] = self.SNP.data
+            self.data["SNP"] = self.SNP.data
         if ("MIR" in modalities):
             self.MIR = miRNAExpression(cancer_type, folder_path + "mirna/")
-            self.multi_omics_data["MIR"] = self.MIR.data
+            self.data["MIR"] = self.MIR.data
+
+            self.MIR.process_target_scan(mirna_list=self.MIR.get_genes_list(),
+                                         gene_symbols=self.GE.get_genes_list())
         if ("LNC" in modalities):
             self.LNC = LncRNAExpression(cancer_type, folder_path + "lncrna/")
-            self.multi_omics_data["LNC"] = self.LNC.data
+            self.data["LNC"] = self.LNC.data
         if ("DNA" in modalities):
             self.DNA = DNAMethylation(cancer_type, folder_path + "dna/")
-            self.multi_omics_data["DNA"] = self.DNA.data
+            self.data["DNA"] = self.DNA.data
         if ("CNV" in modalities):
             self.CNV = CopyNumberVariation(cancer_type, folder_path + "cnv/")
-            self.multi_omics_data["CNV"] = self.CNV.data
+            self.data["CNV"] = self.CNV.data
         if ("PRO" in modalities):
             self.PRO = ProteinExpression(cancer_type, folder_path + "protein_rppa/")
-            self.multi_omics_data["PRO"] = self.PRO.data
+            self.data["PRO"] = self.PRO.data
 
         # Build a table for each samples's clinical data
         all_samples = pd.Index([])
         for modality in modalities:
-            all_samples = all_samples.union(self.multi_omics_data[modality].index)
+            all_samples = all_samples.union(self.data[modality].index)
         self.clinical.build_clinical_samples(all_samples)
-        self.multi_omics_data["SAMPLES"] = self.clinical.samples
+        self.data["SAMPLES"] = self.clinical.samples
 
         self.print_sample_sizes()
 
@@ -88,10 +91,10 @@ class MultiOmicsData:
         :return: An pandas Index list
         """
         # TODO check that for single modalities, this fetch all patients
-        matched_samples = self.multi_omics_data[modalities[0]].index.copy()
+        matched_samples = self.data[modalities[0]].index.copy()
 
         for modality in modalities:
-            matched_samples = matched_samples.join(self.multi_omics_data[modality].index, how="inner")
+            matched_samples = matched_samples.join(self.data[modality].index, how="inner")
 
         return matched_samples
 
@@ -137,29 +140,29 @@ class MultiOmicsData:
         # Build data matrix for each modality, indexed by matched_samples
         X_multiomics = {}
         for modality in modalities:
-            X_multiomics[modality] = self.multi_omics_data[modality].loc[matched_samples]
+            X_multiomics[modality] = self.data[modality].loc[matched_samples]
 
         return X_multiomics, y
 
     def get_patients_clinical(self, matched_samples):
         """
-        Fetch patient's clinical data for each given samples barcodes in matched_samples
-
-        :param matched_samples:
-        :param clinical_data:
-        :return:
+        Fetch patient's clinical data for each given samples barcodes given in matched_samples
         """
-        return self.multi_omics_data["SAMPLES"].loc[matched_samples]
+        return self.data["SAMPLES"].loc[matched_samples]
 
 
     def print_sample_sizes(self):
-        for modality in self.multi_omics_data.keys():
-            print(modality, self.multi_omics_data[modality].shape if hasattr(self.multi_omics_data[modality],
+        for modality in self.data.keys():
+            print(modality, self.data[modality].shape if hasattr(self.data[modality],
                                                                              'shape') else "Didn't import data")
 
+
     def add_subtypes_to_patients_clinical(self, dictionary):
-        self.multi_omics_data["PATIENTS"] = self.multi_omics_data["PATIENTS"].assign(
-            predicted_subtype=self.multi_omics_data["PATIENTS"]["bcr_patient_barcode"].map(dictionary))
+        self.data["PATIENTS"] = self.data["PATIENTS"].assign(
+            predicted_subtype=self.data["PATIENTS"]["bcr_patient_barcode"].map(dictionary))
+
+    def add_association(self, modality_A, modality_B, bi_direction=True):
+        pass
 
 
 if __name__ == '__main__':
