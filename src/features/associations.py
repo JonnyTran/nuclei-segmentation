@@ -17,9 +17,9 @@ class Association():
         self.B = B
         self.C = C
 
-        self.W = nx.Graph()
+        self.W = nx.DiGraph()
 
-    def fit(self, putative_assocs, map_function):
+    def fit(self, putative_assocs, map_function, n_jobs=4):
         edges_added = 0
 
         if putative_assocs is not None:
@@ -27,9 +27,9 @@ class Association():
 
             res = putative_dd.map_partitions(map_function, meta=putative_dd).compute(get=get)
 
-            for res_partition in res:
+            for res_partition in res: 
                 for tup in res_partition:
-                    self.W.add_edge(tup[0], tup[1], dys=tup[2], tag=tag)
+                    self.W.add_edge(tup[0], tup[1], dys=tup[2])
                     edges_added += 1
 
         return edges_added
